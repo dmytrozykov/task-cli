@@ -3,18 +3,18 @@ use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Debug)]
-pub struct Store {
+pub struct TaskStore {
     path: PathBuf,
     tasks: Vec<Task>,
 }
 
 #[derive(Error, Debug)]
-pub enum StoreError {
+pub enum TaskStoreError {
     #[error("Task with id {id} does not exist")]
     TaskDoesNotExist { id: u32 },
 }
 
-impl Store {
+impl TaskStore {
     pub fn load(path: PathBuf) -> Self {
         Self {
             path,
@@ -22,27 +22,27 @@ impl Store {
         }
     }
 
-    pub fn save(&mut self) -> Result<(), StoreError> {
+    pub fn save(&mut self) -> Result<(), TaskStoreError> {
         todo!()
     }
 
-    pub fn add_task(&mut self, title: String) -> u32 {
+    pub fn add(&mut self, title: String) -> u32 {
         todo!()
     }
 
-    pub fn update_task(&mut self, id: u32, title: String) -> Result<(), StoreError> {
+    pub fn rename(&mut self, id: u32, new_title: String) -> Result<(), TaskStoreError> {
         todo!()
     }
 
-    pub fn delete_task(&mut self, id: i32) -> Result<(), StoreError> {
+    pub fn delete(&mut self, id: i32) -> Result<(), TaskStoreError> {
         todo!()
     }
 
-    pub fn task_set_status(&mut self, id: u32, status: TaskStatus) -> Result<(), StoreError> {
+    pub fn set_status(&mut self, id: u32, status: TaskStatus) -> Result<(), TaskStoreError> {
         todo!()
     }
 
-    pub fn get_tasks(&mut self) -> &[Task] {
+    pub fn get_all(&self) -> &[&Task] {
         todo!()
     }
 }
