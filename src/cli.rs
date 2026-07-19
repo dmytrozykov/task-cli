@@ -19,7 +19,7 @@ pub enum Command {
     /// Update the title of an existing task.
     Update {
         /// ID of the task to update.
-        id: i32,
+        id: u32,
 
         /// New title for the task.
         title: String,
@@ -28,19 +28,19 @@ pub enum Command {
     /// Delete a task.
     Delete {
         /// ID of the task to delete.
-        id: i32,
+        id: u32,
     },
 
     /// Mark a task as in progress.
     MarkInProgress {
         /// ID of the task to update.
-        id: i32,
+        id: u32,
     },
 
     /// Mark a task as done.
     MarkDone {
         /// ID of the task to update.
-        id: i32,
+        id: u32,
     },
 
     /// List tasks.
