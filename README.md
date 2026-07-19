@@ -2,29 +2,48 @@
 
 A simple CLI task manager made in Rust as part of [backend roadmap project](https://roadmap.sh/projects/task-tracker).
 
-## How to use
+## Run
+
+### Prerequisites
+
+Make sure you have Rust installed.
+
+### Build
+
+Build and run the application:
 
 ```bash
-# Adding a new task
-task-cli add "Buy groceries"
-# Output: Task added successfully (ID: 1)
-
-# Updating and deleting tasks
-task-cli update 1 "Buy groceries and cook dinner"
-task-cli delete 1
-
-# Marking a task as in progress or done
-task-cli mark-in-progress 1
-task-cli mark-done 1
-
-# Listing all tasks
-task-cli list
-
-# Listing tasks by status
-task-cli list done
-task-cli list todo
-task-cli list in-progress
+cargo run -- <command> [arguments]
 ```
+
+Examples:
+
+```bash
+cargo run -- add "Buy groceries"
+cargo run -- list
+cargo run -- list done
+cargo run -- mark-done 1
+```
+
+Show available commands:
+
+```bash
+cargo run -- --help
+```
+
+## Commands
+
+| Command | Description |
+| --- | --- |
+| `add <title>` | Add a new task |
+| `update <id> <title>` | Update an existing task |
+| `delete <id>` | Delete a task |
+| `mark-in-progress <id>` | Mark a task as in progress |
+| `mark-done <id>` | Mark a task as done |
+| `list` | List all tasks |
+| `list done` | List completed tasks |
+| `list todo` | List todo tasks |
+| `list in-progress` | List tasks in progress |
 
 ## License
 
