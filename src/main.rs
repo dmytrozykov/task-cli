@@ -2,6 +2,8 @@ mod cli;
 mod store;
 mod task;
 
+use std::{fs, path::PathBuf};
+
 use anyhow::Result;
 use clap::Parser;
 
@@ -9,11 +11,10 @@ use cli::{Cli, Command, ListCommand};
 use store::TaskStore;
 use task::{Task, TaskStatus};
 
-const JSON_FILENAME: &str = "tasks.json";
-
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    let mut store = TaskStore::load(JSON_FILENAME)?;
+    let path = tasks_file_path()?;
+    let mut store = TaskStore::load(path)?;
 
     handle_command(cli.command, &mut store)?;
 
@@ -87,4 +88,14 @@ fn list_tasks(tasks: &[Task], status: Option<TaskStatus>) {
     for task in tasks {
         println!("{task}")
     }
+}
+
+fn tasks_file_path() -> Result<PathBuf> {
+    let mut path =
+        dirs::data_dir().ok_or_else(|| anyhow::anyhow!("could not determine data directory"))?;
+
+    path.push("task-cli");
+    fs::create_dir_all(&path)?;
+    path.push("tasks.json");
+    Ok(path)
 }
