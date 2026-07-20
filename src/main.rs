@@ -2,18 +2,19 @@ mod cli;
 mod store;
 mod task;
 
-use anyhow::{Ok, Result};
+use std::path::PathBuf;
+
+use anyhow::Result;
 use clap::Parser;
 
 use cli::{Cli, Command, ListCommand};
 use store::TaskStore;
 use task::{Task, TaskStatus};
 
-const JSON_FILENAME: &'static str = "tasks.json";
-
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    let mut store = TaskStore::load(JSON_FILENAME)?;
+    let path = tasks_file_path()?;
+    let mut store = TaskStore::load(path)?;
 
     handle_command(cli.command, &mut store)?;
 
@@ -25,7 +26,7 @@ fn main() -> Result<()> {
 fn handle_command(command: Command, store: &mut TaskStore) -> Result<()> {
     match command {
         Command::Add { title } => {
-            let id = store.add(title);
+            let id = store.add(title)?;
             println!("Task added successfully (ID: {id})");
         }
 
@@ -46,7 +47,7 @@ fn handle_command(command: Command, store: &mut TaskStore) -> Result<()> {
 
         Command::MarkDone { id } => {
             store.set_status(id, TaskStatus::Done)?;
-            println!("Task marked as in done (ID: {id})");
+            println!("Task marked as done (ID: {id})");
         }
 
         Command::List { command } => {
@@ -67,7 +68,7 @@ fn handle_command(command: Command, store: &mut TaskStore) -> Result<()> {
 fn list_tasks(tasks: &[Task], status: Option<TaskStatus>) {
     let mut tasks = tasks
         .iter()
-        .filter(|task| status.map_or(true, |status| task.status == status))
+        .filter(|task| status.is_none_or(|status| task.status == status))
         .peekable();
 
     if tasks.peek().is_none() {
@@ -78,7 +79,7 @@ fn list_tasks(tasks: &[Task], status: Option<TaskStatus>) {
     let message = match status {
         None => "All tasks:",
         Some(TaskStatus::Todo) => "Todo tasks:",
-        Some(TaskStatus::InProgress) => "In progres tasks:",
+        Some(TaskStatus::InProgress) => "In progress tasks:",
         Some(TaskStatus::Done) => "Done tasks:",
     };
 
@@ -87,4 +88,13 @@ fn list_tasks(tasks: &[Task], status: Option<TaskStatus>) {
     for task in tasks {
         println!("{task}")
     }
+}
+
+fn tasks_file_path() -> Result<PathBuf> {
+    let mut path =
+        dirs::data_dir().ok_or_else(|| anyhow::anyhow!("could not determine data directory"))?;
+
+    path.push("task-cli");
+    path.push("tasks.json");
+    Ok(path)
 }
