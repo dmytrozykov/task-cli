@@ -46,7 +46,7 @@ fn handle_command(command: Command, store: &mut TaskStore) -> Result<()> {
 
         Command::MarkDone { id } => {
             store.set_status(id, TaskStatus::Done)?;
-            println!("Task marked as in done (ID: {id})");
+            println!("Task marked as done (ID: {id})");
         }
 
         Command::List { command } => {
@@ -78,7 +78,7 @@ fn list_tasks(tasks: &[Task], status: Option<TaskStatus>) {
     let message = match status {
         None => "All tasks:",
         Some(TaskStatus::Todo) => "Todo tasks:",
-        Some(TaskStatus::InProgress) => "In progres tasks:",
+        Some(TaskStatus::InProgress) => "In progress tasks:",
         Some(TaskStatus::Done) => "Done tasks:",
     };
 
