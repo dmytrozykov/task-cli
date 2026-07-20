@@ -40,7 +40,7 @@ impl TaskStore {
     }
 
     pub fn save(&self) -> Result<(), TaskStoreError> {
-        let json = serde_json::to_string(&self.tasks)?;
+        let json = serde_json::to_string_pretty(&self.tasks)?;
         fs::write(&self.path, json)?;
         Ok(())
     }
@@ -55,9 +55,9 @@ impl TaskStore {
         id
     }
 
-    pub fn rename(&mut self, id: u32, new_title: String) -> Result<(), TaskStoreError> {
+    pub fn rename(&mut self, id: u32, title: String) -> Result<(), TaskStoreError> {
         self.get_task_mut(id)
-            .map(|t| t.title = new_title)
+            .map(|t| t.title = title)
             .ok_or(TaskStoreError::TaskNotFound(id))?;
         Ok(())
     }
