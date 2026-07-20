@@ -67,9 +67,10 @@ fn handle_command(command: Command, store: &mut TaskStore) -> Result<()> {
 fn list_tasks(tasks: &[Task], status: Option<TaskStatus>) {
     let mut tasks = tasks
         .iter()
-        .filter(|task| status.map_or(true, |status| task.status == status));
+        .filter(|task| status.map_or(true, |status| task.status == status))
+        .peekable();
 
-    if tasks.next().is_none() {
+    if tasks.peek().is_none() {
         println!("No tasks");
         return;
     }
