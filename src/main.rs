@@ -25,7 +25,7 @@ fn main() -> Result<()> {
 fn handle_command(command: Command, store: &mut TaskStore) -> Result<()> {
     match command {
         Command::Add { title } => {
-            let id = store.add(title);
+            let id = store.add(title)?;
             println!("Task added successfully (ID: {id})");
         }
 

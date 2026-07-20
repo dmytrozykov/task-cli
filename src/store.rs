@@ -14,6 +14,8 @@ pub struct TaskStore {
 pub enum TaskStoreError {
     #[error("Task not found: {0}")]
     TaskNotFound(u32),
+    #[error("Task title must not be empty")]
+    EmptyTitle,
     #[error("IO error: {0}")]
     Io(#[from] io::Error),
     #[error("Parse error: {0}")]
@@ -45,17 +47,27 @@ impl TaskStore {
         Ok(())
     }
 
-    pub fn add(&mut self, title: String) -> u32 {
+    pub fn add(&mut self, title: String) -> Result<u32, TaskStoreError> {
+        let title = title.trim().to_string();
+        if title.is_empty() {
+            return Err(TaskStoreError::EmptyTitle);
+        }
+
         let id = self.get_next_id();
         self.tasks.push(Task {
             id,
             title,
             status: TaskStatus::Todo,
         });
-        id
+        Ok(id)
     }
 
     pub fn rename(&mut self, id: u32, title: String) -> Result<(), TaskStoreError> {
+        let title = title.trim().to_string();
+        if title.is_empty() {
+            return Err(TaskStoreError::EmptyTitle);
+        }
+
         let Some(task) = self.get_task_mut(id) else {
             return Err(TaskStoreError::TaskNotFound(id));
         };

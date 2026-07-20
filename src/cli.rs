@@ -13,6 +13,7 @@ pub enum Command {
     /// Create a new task.
     Add {
         /// Title of the new task.
+        #[arg(value_parser = non_empty_title)]
         title: String,
     },
 
@@ -60,4 +61,13 @@ pub enum ListCommand {
 
     /// Show completed tasks.
     Done,
+}
+
+fn non_empty_title(s: &str) -> Result<String, String> {
+    let trimmed = s.trim();
+    if trimmed.is_empty() {
+        Err("title must not be empty".to_string())
+    } else {
+        Ok(trimmed.to_string())
+    }
 }
