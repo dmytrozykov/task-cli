@@ -109,3 +109,135 @@ impl TaskStore {
         self.tasks.iter().map(|t| t.id).max().map_or(1, |m| m + 1)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use std::assert_matches;
+
+    use tempfile::NamedTempFile;
+
+    fn temp_store() -> TaskStore {
+        let file = NamedTempFile::new().unwrap();
+        let path = file.path().to_path_buf();
+
+        drop(file); // remove the empty file so load() takes the NotFound branch
+
+        TaskStore::load(path).unwrap()
+    }
+
+    #[test]
+    fn load_missing_file_starts_empty() {
+        let store = temp_store();
+        assert!(store.get_all().is_empty());
+    }
+
+    #[test]
+    fn add_creates_a_todo_task() {
+        let mut store = temp_store();
+        let id = store.add("Buy groceries".to_string()).unwrap();
+
+        let tasks = store.get_all();
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks[0].id, id);
+        assert_eq!(tasks[0].title, "Buy groceries".to_string());
+        assert_eq!(tasks[0].status, TaskStatus::Todo);
+    }
+
+    #[test]
+    fn add_task_with_empty_title() {
+        let mut store = temp_store();
+        assert_matches!(store.add("".to_string()), Err(TaskStoreError::EmptyTitle));
+        assert_matches!(store.add(" ".to_string()), Err(TaskStoreError::EmptyTitle));
+        assert_matches!(
+            store.add(" \n".to_string()),
+            Err(TaskStoreError::EmptyTitle)
+        );
+    }
+
+    #[test]
+    fn rename_updates_existing_task() {
+        let mut store = temp_store();
+        let id = store.add("Buy groceries".to_string()).unwrap();
+
+        store.rename(id, "Buy tomatoes".to_string()).unwrap();
+
+        assert_eq!(store.get_all()[0].title, "Buy tomatoes".to_string());
+    }
+
+    #[test]
+    fn rename_non_existing_task_returns_error() {
+        let mut store = temp_store();
+
+        let res = store.rename(1, "Buy tomatoes".to_string());
+
+        assert_matches!(res, Err(TaskStoreError::TaskNotFound(1)));
+    }
+
+    #[test]
+    fn delete_removes_task() {
+        let mut store = temp_store();
+        let id = store.add("Buy groceries".to_string()).unwrap();
+
+        store.delete(id).unwrap();
+
+        assert!(store.get_all().is_empty());
+    }
+
+    #[test]
+    fn set_status_updates_task() {
+        let mut store = temp_store();
+        let id = store.add("Buy groceries".to_string()).unwrap();
+
+        store.set_status(id, TaskStatus::Done).unwrap();
+
+        assert_eq!(store.get_all()[0].status, TaskStatus::Done);
+    }
+
+    #[test]
+    fn set_status_non_existing_task_returns_error() {
+        let mut store = temp_store();
+
+        let res = store.set_status(1, TaskStatus::Done);
+
+        assert_matches!(res, Err(TaskStoreError::TaskNotFound(1)));
+    }
+
+    #[test]
+    fn save_and_load_roundtrip() {
+        let file = NamedTempFile::new().unwrap();
+        let path = file.path().to_path_buf();
+        drop(file);
+
+        let mut store = TaskStore::load(&path).unwrap();
+        store.add("Task 1".to_string()).unwrap();
+        store.add("Task 2".to_string()).unwrap();
+        store.save().unwrap();
+
+        let reloaded = TaskStore::load(&path).unwrap();
+        assert_eq!(reloaded.get_all().len(), 2);
+        assert_eq!(reloaded.get_all()[0].title, "Task 1".to_string());
+        assert_eq!(reloaded.get_all()[1].title, "Task 2".to_string());
+    }
+
+    #[test]
+    fn ids_remain_unique() {
+        let mut store = temp_store();
+        let id1 = store.add("First".to_string()).unwrap();
+        let id2 = store.add("Second".to_string()).unwrap();
+        store.delete(id1).unwrap();
+        let id3 = store.add("Third".to_string()).unwrap();
+
+        let ids: Vec<u32> = store.get_all().iter().map(|t| t.id).collect();
+        let mut unique_ids = ids.clone();
+        unique_ids.sort();
+        unique_ids.dedup();
+
+        assert_eq!(
+            ids.len(),
+            unique_ids.len(),
+            "task ids must be unique, got {ids:?} (id2={id2}, id3={id3})"
+        );
+    }
+}
