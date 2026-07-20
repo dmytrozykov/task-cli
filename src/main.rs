@@ -2,7 +2,7 @@ mod cli;
 mod store;
 mod task;
 
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::Parser;
@@ -95,7 +95,6 @@ fn tasks_file_path() -> Result<PathBuf> {
         dirs::data_dir().ok_or_else(|| anyhow::anyhow!("could not determine data directory"))?;
 
     path.push("task-cli");
-    fs::create_dir_all(&path)?;
     path.push("tasks.json");
     Ok(path)
 }

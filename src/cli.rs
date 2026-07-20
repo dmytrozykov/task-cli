@@ -23,6 +23,7 @@ pub enum Command {
         id: u32,
 
         /// New title for the task.
+        #[arg(value_parser = non_empty_title)]
         title: String,
     },
 

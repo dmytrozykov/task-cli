@@ -27,6 +27,11 @@ impl TaskStore {
         let path = path.into();
 
         match fs::read_to_string(&path) {
+            Ok(json) if json.trim().is_empty() => Ok(Self {
+                path,
+                tasks: Vec::new(),
+            }),
+
             Ok(json) => Ok(Self {
                 path,
                 tasks: serde_json::from_str(&json)?,
@@ -42,16 +47,17 @@ impl TaskStore {
     }
 
     pub fn save(&self) -> Result<(), TaskStoreError> {
+        if let Some(parent) = self.path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+
         let json = serde_json::to_string_pretty(&self.tasks)?;
         fs::write(&self.path, json)?;
         Ok(())
     }
 
     pub fn add(&mut self, title: String) -> Result<u32, TaskStoreError> {
-        let title = title.trim().to_string();
-        if title.is_empty() {
-            return Err(TaskStoreError::EmptyTitle);
-        }
+        let title = Self::validate_title(title)?;
 
         let id = self.get_next_id();
         self.tasks.push(Task {
@@ -63,10 +69,7 @@ impl TaskStore {
     }
 
     pub fn rename(&mut self, id: u32, title: String) -> Result<(), TaskStoreError> {
-        let title = title.trim().to_string();
-        if title.is_empty() {
-            return Err(TaskStoreError::EmptyTitle);
-        }
+        let title = Self::validate_title(title)?;
 
         let Some(task) = self.get_task_mut(id) else {
             return Err(TaskStoreError::TaskNotFound(id));
@@ -108,13 +111,22 @@ impl TaskStore {
     fn get_next_id(&self) -> u32 {
         self.tasks.iter().map(|t| t.id).max().map_or(1, |m| m + 1)
     }
+
+    fn validate_title(title: String) -> Result<String, TaskStoreError> {
+        let title = title.trim().to_string();
+        if title.is_empty() {
+            Err(TaskStoreError::EmptyTitle)
+        } else {
+            Ok(title)
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use std::assert_matches;
+    use std::io::Write;
 
     use tempfile::NamedTempFile;
 
@@ -148,12 +160,18 @@ mod tests {
     #[test]
     fn add_task_with_empty_title() {
         let mut store = temp_store();
-        assert_matches!(store.add("".to_string()), Err(TaskStoreError::EmptyTitle));
-        assert_matches!(store.add(" ".to_string()), Err(TaskStoreError::EmptyTitle));
-        assert_matches!(
+        assert!(matches!(
+            store.add("".to_string()),
+            Err(TaskStoreError::EmptyTitle)
+        ));
+        assert!(matches!(
+            store.add(" ".to_string()),
+            Err(TaskStoreError::EmptyTitle)
+        ));
+        assert!(matches!(
             store.add(" \n".to_string()),
             Err(TaskStoreError::EmptyTitle)
-        );
+        ));
     }
 
     #[test]
@@ -172,7 +190,7 @@ mod tests {
 
         let res = store.rename(1, "Buy tomatoes".to_string());
 
-        assert_matches!(res, Err(TaskStoreError::TaskNotFound(1)));
+        assert!(matches!(res, Err(TaskStoreError::TaskNotFound(1))));
     }
 
     #[test]
@@ -183,6 +201,15 @@ mod tests {
         store.delete(id).unwrap();
 
         assert!(store.get_all().is_empty());
+    }
+
+    #[test]
+    fn delete_non_existing_task_returns_error() {
+        let mut store = temp_store();
+
+        let res = store.delete(1);
+
+        assert!(matches!(res, Err(TaskStoreError::TaskNotFound(1))));
     }
 
     #[test]
@@ -201,14 +228,13 @@ mod tests {
 
         let res = store.set_status(1, TaskStatus::Done);
 
-        assert_matches!(res, Err(TaskStoreError::TaskNotFound(1)));
+        assert!(matches!(res, Err(TaskStoreError::TaskNotFound(1))));
     }
 
     #[test]
     fn save_and_load_roundtrip() {
         let file = NamedTempFile::new().unwrap();
         let path = file.path().to_path_buf();
-        drop(file);
 
         let mut store = TaskStore::load(&path).unwrap();
         store.add("Task 1".to_string()).unwrap();
@@ -239,5 +265,28 @@ mod tests {
             unique_ids.len(),
             "task ids must be unique, got {ids:?} (id2={id2}, id3={id3})"
         );
+    }
+
+    #[test]
+    fn save_creates_parent_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("nested").join("tasks.json");
+
+        let mut store = TaskStore::load(&path).unwrap();
+        store.add("Task".to_string()).unwrap();
+        store.save().unwrap();
+
+        assert!(path.exists());
+    }
+
+    #[test]
+    fn load_malformed_json_returns_parse_error() {
+        let mut file = NamedTempFile::new().unwrap();
+        write!(file, "not json").unwrap();
+        let path = file.path().to_path_buf();
+
+        let res = TaskStore::load(&path);
+
+        assert!(matches!(res, Err(TaskStoreError::Parse(_))));
     }
 }
