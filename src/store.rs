@@ -46,7 +46,7 @@ impl TaskStore {
     }
 
     pub fn add(&mut self, title: String) -> u32 {
-        let id = self.tasks.len() as u32;
+        let id = self.get_next_id();
         self.tasks.push(Task {
             id,
             title,
@@ -87,5 +87,9 @@ impl TaskStore {
 
     fn get_task_mut(&mut self, id: u32) -> Option<&mut Task> {
         self.tasks.iter_mut().find(|t| t.id == id)
+    }
+
+    fn get_next_id(&self) -> u32 {
+        self.tasks.iter().map(|t| t.id).max().map_or(1, |m| m + 1)
     }
 }
