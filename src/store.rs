@@ -12,11 +12,11 @@ pub struct TaskStore {
 
 #[derive(Error, Debug)]
 pub enum TaskStoreError {
-    #[error("Task with id {0} not found")]
+    #[error("Task not found: {0}")]
     TaskNotFound(u32),
     #[error("IO error: {0}")]
     Io(#[from] io::Error),
-    #[error("ParseError: {0}")]
+    #[error("Parse error: {0}")]
     Parse(#[from] serde_json::Error),
 }
 
@@ -26,7 +26,7 @@ impl TaskStore {
 
         match fs::read_to_string(&path) {
             Ok(json) => Ok(Self {
-                path: path,
+                path,
                 tasks: serde_json::from_str(&json)?,
             }),
 
@@ -56,9 +56,11 @@ impl TaskStore {
     }
 
     pub fn rename(&mut self, id: u32, title: String) -> Result<(), TaskStoreError> {
-        self.get_task_mut(id)
-            .map(|t| t.title = title)
-            .ok_or(TaskStoreError::TaskNotFound(id))?;
+        let Some(task) = self.get_task_mut(id) else {
+            return Err(TaskStoreError::TaskNotFound(id));
+        };
+
+        task.title = title;
         Ok(())
     }
 
@@ -75,9 +77,11 @@ impl TaskStore {
     }
 
     pub fn set_status(&mut self, id: u32, status: TaskStatus) -> Result<(), TaskStoreError> {
-        self.get_task_mut(id)
-            .map(|t| t.status = status)
-            .ok_or(TaskStoreError::TaskNotFound(id))?;
+        let Some(task) = self.get_task_mut(id) else {
+            return Err(TaskStoreError::TaskNotFound(id));
+        };
+
+        task.status = status;
         Ok(())
     }
 

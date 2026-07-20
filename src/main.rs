@@ -2,14 +2,14 @@ mod cli;
 mod store;
 mod task;
 
-use anyhow::{Ok, Result};
+use anyhow::Result;
 use clap::Parser;
 
 use cli::{Cli, Command, ListCommand};
 use store::TaskStore;
 use task::{Task, TaskStatus};
 
-const JSON_FILENAME: &'static str = "tasks.json";
+const JSON_FILENAME: &str = "tasks.json";
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -67,7 +67,7 @@ fn handle_command(command: Command, store: &mut TaskStore) -> Result<()> {
 fn list_tasks(tasks: &[Task], status: Option<TaskStatus>) {
     let mut tasks = tasks
         .iter()
-        .filter(|task| status.map_or(true, |status| task.status == status))
+        .filter(|task| status.is_none_or(|status| task.status == status))
         .peekable();
 
     if tasks.peek().is_none() {
